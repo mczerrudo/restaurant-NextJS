@@ -1,24 +1,64 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+"use client";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+  const [username, setU] = useState("");
+  const [password, setP] = useState("");
+  const [err, setErr] = useState("");
+  const router = useRouter();
+  const next = useSearchParams().get("next") || "/";
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setErr(j?.detail || "Login failed");
+      return;
+    }
+    toast.success("Logged in successfully!")
+    router.replace(next);
+  }
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form
+      className={cn("flex flex-col gap-6", className)}
+      {...props}
+      onSubmit={onSubmit}
+    >
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Login to your account</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Enter your email below to login to your account
+          Enter your username below to login to your account
         </p>
       </div>
       <div className="grid gap-6">
         <div className="grid gap-3">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            required
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setU(e.target.value)}
+          />
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
@@ -30,12 +70,20 @@ export function LoginForm({
               Forgot your password?
             </a>
           </div>
-          <Input id="password" type="password" required />
+          <Input
+            id="password"
+            type="password"
+            required
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setP(e.target.value)}
+          />
         </div>
+        {err && <div className="text-red-600 text-sm">{err}</div>}
         <Button type="submit" className="w-full">
           Login
         </Button>
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+        {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
             Or continue with
           </span>
@@ -48,7 +96,7 @@ export function LoginForm({
             />
           </svg>
           Login with GitHub
-        </Button>
+        </Button> */}
       </div>
       <div className="text-center text-sm">
         Don&apos;t have an account?{" "}
@@ -57,5 +105,5 @@ export function LoginForm({
         </a>
       </div>
     </form>
-  )
+  );
 }
