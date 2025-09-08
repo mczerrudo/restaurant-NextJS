@@ -33,5 +33,7 @@ export async function drfFetch(
     const text = await res.text().catch(() => "");
     throw new Error(`DRF error ${res.status}: ${text || res.statusText}`);
   }
-  return res.json();
+
+  console.log("Drf Fetch", path, res);
+  return res;
 }

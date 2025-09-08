@@ -1,12 +1,19 @@
 import { drfFetch } from "@/lib/drf";
+import { getRestaurant } from "@/actions/restaurant";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
-  const r = await drfFetch(`/restaurants/${params.id}/`, {}, { cache: "no-store" });
+  const r = await getRestaurant(Number(params.id));
+  console.log("restaurant", r);
   return { title: `${r.name} • React Restaurant` };
 }
 
-export default async function RestaurantDetail({ params }: { params: { id: string } }) {
-  const r = await drfFetch(`/restaurants/${params.id}/`, {}, { cache: "no-store" });
+export default async function RestaurantDetail({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const r = await getRestaurant(Number(params.id));
+  console.log("restaurant", r);
   const items = r.menu_items ?? [];
 
   return (
