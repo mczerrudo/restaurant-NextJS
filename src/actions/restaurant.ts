@@ -2,6 +2,7 @@
 import "server-only";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { drfFetch } from "@/lib/drf";
+import { cookies } from "next/headers";
 
 /** GETs */
 export async function listRestaurants(search = "") {
@@ -40,4 +41,12 @@ export async function deleteRestaurant(id: number) {
   await drfFetch(`/restaurants/${id}/`, { method: "DELETE" });
   revalidateTag("restaurants");
   return { ok: true };
+}
+
+export async function getMyRestaurants() {
+   const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
+  const user = userCookie ? JSON.parse(userCookie) : null;
+  const res = await drfFetch(`/restaurants/?owner_name=${user?.username}`, { method: "GET" });
+  return res.json();
 }

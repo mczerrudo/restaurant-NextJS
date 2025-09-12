@@ -1,9 +1,9 @@
-import { drfFetch } from "@/lib/drf";
 import { getRestaurant } from "@/actions/restaurant";
+import { listMenuItems } from "@/actions/menu-item";
+import MenuItem from "@/components/restaurant/menu-items";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const r = await getRestaurant(Number(params.id));
-  console.log("restaurant", r);
   return { title: `${r.name} • React Restaurant` };
 }
 
@@ -13,20 +13,17 @@ export default async function RestaurantDetail({
   params: { id: string };
 }) {
   const r = await getRestaurant(Number(params.id));
-  console.log("restaurant", r);
-  const items = r.menu_items ?? [];
+  const items = await listMenuItems(r.id);
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">{r.name}</h1>
-      <ul className="grid gap-3 sm:grid-cols-2">
+    <main className="max-w-5xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-semibold">{r.name}</h1>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         {items.map((m: any) => (
-          <li key={m.id} className="border rounded p-3">
-            <div className="font-medium">{m.name}</div>
-            <div className="opacity-70">₱{Number(m.price).toFixed(2)}</div>
-          </li>
+          <MenuItem key={m.id} m={m} />
         ))}
-      </ul>
+      </div>
     </main>
   );
 }

@@ -6,14 +6,19 @@ import { drfFetch } from "@/lib/drf";
 /** ------------- GET (loaders) ------------- **/
 
 export async function listMenuItems(restaurantId: number, search = "") {
-  const qs = new URLSearchParams({
-    restaurant: String(restaurantId),
-    ...(search ? { search } : {}),
-  });
-  const res = await drfFetch(`/menu_item/?${qs.toString()}`, { method: "GET" }, { cache: "force-cache" });
-  // Tag cache at call site (RSC fetch wrapper) or keep no-store; choose per page needs
-  return res.json(); // { results: [...] } or [...]
+  const qs = new URLSearchParams();
+  qs.set("restaurant", String(restaurantId));
+  if (search) qs.set("search", search);
+
+  const res = await drfFetch(
+    `/menu_item/?${qs.toString()}`,
+    { method: "GET" },
+    { cache: "force-cache" }
+  );
+
+  return res.json(); // response is usually { results: [...] }
 }
+
 
 export async function getMenuItem(id: number) {
   const res = await drfFetch(`/menu_item/${id}/`, { method: "GET" });

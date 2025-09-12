@@ -34,6 +34,5 @@ export async function drfFetch(
     throw new Error(`DRF error ${res.status}: ${text || res.statusText}`);
   }
 
-  console.log("Drf Fetch", path, res);
   return res;
 }

@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
+import { CartProvider } from "@/components/cart/cart-provider";
+import TopBar from "@/components/TopBar";
 
 export const metadata: Metadata = {
   title: "My Restaurant App",
@@ -13,9 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
-        {children} 
+    <html lang="en" className="">
+      <body className="min-h-screen">
+        <TopBar />
+        <CartProvider>{children}</CartProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

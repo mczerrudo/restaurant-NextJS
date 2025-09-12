@@ -16,7 +16,6 @@ export async function listUsers(q = "") {
 // (Loader) – get one user (optional)
 export async function getUser(id: number) {
   const res = await drfFetch(`/user/${id}/`, { method: "GET" });
-  console.log(res);
   return res.json();
 }
 

@@ -3,14 +3,26 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const access = req.cookies.get("access")?.value;
-  const protectedPaths = ["/owner", "/orders"];
-  const isProtected = protectedPaths.some((p) => req.nextUrl.pathname.startsWith(p));
+  const userCookie = req.cookies.get("user")?.value;
+  const user = userCookie ? JSON.parse(userCookie) : null;
 
-  if (isProtected && !access) {
+  const { pathname, search } = req.nextUrl;
+
+  const protectedPaths = ["/owner", "/orders"];
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+
+  if (!isProtected) return NextResponse.next();
+
+  if (!access) {
     const url = new URL("/login", req.url);
-    url.searchParams.set("next", req.nextUrl.pathname + req.nextUrl.search);
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
+
+  if (pathname.startsWith("/owner") && !user?.is_restaurant_owner) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   return NextResponse.next();
 }
 

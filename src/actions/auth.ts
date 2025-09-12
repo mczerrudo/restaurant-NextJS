@@ -56,5 +56,8 @@ export async function logout() {
   const jar = await cookies();
   jar.delete("access");
   jar.delete("refresh");
+  jar.delete("user");
+
+  return { ok: true };
 }
 

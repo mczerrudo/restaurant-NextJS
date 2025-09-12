@@ -1,6 +1,15 @@
 import { drfFetch } from "@/lib/drf";
 import { listRestaurants } from "@/actions/restaurant";
 import Link from "next/link";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export const revalidate = 60; // ISR every minute (optional). Remove to make it SSR-only.
 
@@ -23,18 +32,26 @@ export default async function RestaurantsPage({
           className="border rounded px-3 py-2 w-full"
         />
       </form>
-      <ul className="divide-y rounded-lg border">
-        {restaurants.map((r: any) => (
-          <li key={r.id} className="p-0">
-            <Link
-              href={`/restaurants/${r.id}`} // or r.slug if you have slugs
-              className="block p-4 hover:bg-gray-50 focus:bg-gray-100 focus:outline-none"
-            >
-              {r.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <Card>
+        <CardHeader>
+          <CardTitle>Restaurant List</CardTitle>
+          <CardDescription>Find your favorite restaurant</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="grid gap-4">
+            {restaurants.map((r : any) => (
+              <li key={r.id}>
+                <Link
+                  href={`/restaurants/${r.id}`}
+                  className="block p-4 rounded-md outline-1 focus:bg-white/10 focus:outline-none hover:bg-white/10"
+                >
+                  {r.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </main>
   );
 }
