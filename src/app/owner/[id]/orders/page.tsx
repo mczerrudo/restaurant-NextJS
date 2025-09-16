@@ -14,6 +14,17 @@ import OrdersFilters from "@/components/orders/filter";
 import { Car } from "lucide-react";
 import { OrderStatus } from "@/lib/definitions";
 import { OwnerStatus } from "@/components/orders/OwnerStatus";
+import {
+  ShoppingCart,
+  User,
+  Calendar,
+  Utensils,
+  Store,
+  Filter,
+  BarChart3,
+} from "lucide-react";
+import { OrderStatistics } from "@/components/orders/orderStatistics";
+import { OrdersList } from "@/components/orders/orderList";
 
 export const dynamic = "force-dynamic";
 
@@ -52,86 +63,38 @@ export default async function OrdersPage({
         ? (get("ordering") as any)
         : "-created_at",
   });
-  console.log("Orders:", orders);
+  const ordering = get("ordering");
+
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">My Orders</h1>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">My Orders</h1>
+          <p className="text-gray-600 mt-1">
+            View and manage your order history
+          </p>
+        </div>
 
-      <OrdersFilters restaurants={restaurants || []} isOwner={true} restaurantId={p.id} />
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Filters Sidebar */}
+          <div className="w-full lg:w-1/4">
+            <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
+              <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filter Orders
+              </h2>
+              <OrdersFilters restaurants={restaurants || []} isOwner={true} />
+            </div>
 
-      {(!orders || orders.length === 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>No orders yet</CardTitle>
-            <CardDescription className="text-gray-600">
-              You don’t have any orders yet. When you place one, it’ll show up
-              here.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+            <OrderStatistics orders={orders} />
+          </div>
 
-      <div className="space-y-4">
-        {orders?.map((o: any) => {
-          const total =
-            o.items?.reduce(
-              (sum: number, i: any) => sum + Number(i.itemSubtotal ?? 0),
-              0
-            ) ?? 0;
-          const created = o.createdAt
-            ? new Date(o.createdAt).toLocaleString()
-            : "—";
-
-          return (
-            <Card key={o.id}>
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <CardTitle className="text-base sm:text-lg">
-                    Order #{o.id}
-                  </CardTitle>
-                  <CardDescription>Placed on {created}</CardDescription>
-                  <CardDescription>
-                    Restaurant:{" "}
-                    {restaurants.find((r) => r.id === o.restaurantId)?.name}
-                  </CardDescription>
-                </div>
-                <OwnerStatus order={{ id: o.id, status: o.status }} />
-              </CardHeader>
-
-              <CardContent className="space-y-2">
-                {o.items?.length ? (
-                  <ul className="space-y-1 text-sm">
-                    {o.items.map((i: any) => (
-                      <li
-                        key={i.id}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="truncate">
-                          {i.menuName ?? "Item"} × {i.quantity ?? 0}
-                        </span>
-                        <span className="tabular-nums">
-                          {pesos(Number(i.itemSubtotal ?? 0))}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No items</p>
-                )}
-              </CardContent>
-
-              <Separator className="my-2" />
-
-              <CardFooter className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <span className="font-semibold tabular-nums">
-                  {pesos(total)}
-                </span>
-              </CardFooter>
-            </Card>
-          );
-        })}
+          {/* Orders List */}
+          <div className="w-full lg:w-3/4">
+            <OrdersList orders={orders} restaurants={restaurants} ordering={ordering} isOwner={true}/>
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

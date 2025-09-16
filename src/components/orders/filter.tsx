@@ -16,7 +16,7 @@ type Restaurant = { id: number; name: string };
 export default function OrdersFilters({
   restaurants,
   isOwner,
-  restaurantId
+  restaurantId,
 }: {
   restaurants: Restaurant[];
   isOwner: boolean;
@@ -32,10 +32,9 @@ export default function OrdersFilters({
       const params = new URLSearchParams(sp.toString());
       if (v && v.length) params.set(k, v);
       else params.delete(k);
-      if(isOwner)
+      if (isOwner)
         router.replace(`/owner/${restaurantId}/orders?${params.toString()}`);
-      else
-        router.replace(`/orders?${params.toString()}`);
+      else router.replace(`/orders?${params.toString()}`);
     },
     [router, sp]
   );
@@ -45,15 +44,16 @@ export default function OrdersFilters({
       { value: "all", label: "All statuses" },
       { value: "pending", label: "Pending" },
       { value: "confirmed", label: "Confirmed" },
-      { value: "cancelled", label: "Cancelled" },
+      { value: "preparing", label:"Preparing"},
+      { value: "completed", label: "Completed" },
+      { value: "cancelled", label: "Cancelled" },    
     ],
     []
   );
 
   return (
-    <div className="rounded-lg border p-3 sm:p-4 space-y-3">
+    <div >
       <div className="flex justify-center gap-4 flex-wrap">
-       
         {/* Restaurant */}
         {!isOwner && (
           <div>
@@ -115,7 +115,7 @@ export default function OrdersFilters({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 mt-2">
         <Button variant="outline" onClick={() => router.replace("/orders")}>
           Clear
         </Button>

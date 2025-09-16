@@ -166,6 +166,9 @@ export async function updateOrderStatus(orderId: string, next: OrderStatus) {
     return { ok: false, message: "Order is already finalized" };
 
   await db.update(orders).set({ status: next }).where(eq(orders.id, orderId));
+  
+  revalidatePath("/orders");
+  revalidatePath("/owner")
   return { ok: true };
 }
 
