@@ -35,6 +35,7 @@ export const restaurants = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    address: text("address"),
     createdAt: integer("created_at").notNull().default(nowMs),
     //Ratings
     ratingAvg: real("rating_avg").notNull().default(0),

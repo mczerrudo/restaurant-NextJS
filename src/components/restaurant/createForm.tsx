@@ -16,6 +16,10 @@ export default function CreateForm() {
         <Input id="name" name="name" required />
       </div>
       <div className="space-y-1">
+        <Label htmlFor="address">Address</Label>
+        <Input id="address" name="address" required />
+      </div>
+      <div className="space-y-1">
         <Label htmlFor="description">Description</Label>
         <Input id="description" name="description" />
       </div>

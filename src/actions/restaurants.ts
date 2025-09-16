@@ -28,14 +28,15 @@ export async function listRestaurantsByOwner(ownerId?: number) {
 }
 
 export async function createRestaurant(_: any,
-  form: FormData | { name: string; description?: string }
+  form: FormData | { name: string; description?: string; address:string}
 ) {
   const user = await requireUser();
   const payload =
     form instanceof FormData
       ? {
           name: String(form.get("name") || ""),
-          description: String(form.get("description") || "") || undefined,
+          description: String(form.get("description") || ""),
+          address: String(form.get("address") || "")|| undefined,
         }
       : form;
 
@@ -46,6 +47,7 @@ export async function createRestaurant(_: any,
     await db.insert(restaurants).values({
       ownerId: user.id,
       name: parsed.data.name,
+      address: parsed.data.address,
       description: parsed.data.description,
     });
     revalidatePath("/owner/restaurants");
