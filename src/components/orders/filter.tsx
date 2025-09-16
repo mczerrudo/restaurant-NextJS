@@ -16,9 +16,11 @@ type Restaurant = { id: number; name: string };
 export default function OrdersFilters({
   restaurants,
   isOwner,
+  restaurantId
 }: {
   restaurants: Restaurant[];
   isOwner: boolean;
+  restaurantId?: string;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -30,7 +32,10 @@ export default function OrdersFilters({
       const params = new URLSearchParams(sp.toString());
       if (v && v.length) params.set(k, v);
       else params.delete(k);
-      router.replace(`/orders?${params.toString()}`);
+      if(isOwner)
+        router.replace(`/owner/${restaurantId}/orders?${params.toString()}`);
+      else
+        router.replace(`/orders?${params.toString()}`);
     },
     [router, sp]
   );
@@ -47,7 +52,7 @@ export default function OrdersFilters({
 
   return (
     <div className="rounded-lg border p-3 sm:p-4 space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="flex justify-center gap-4 flex-wrap">
        
         {/* Restaurant */}
         {!isOwner && (

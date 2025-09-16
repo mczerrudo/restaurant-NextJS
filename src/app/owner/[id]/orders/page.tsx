@@ -57,7 +57,7 @@ export default async function OrdersPage({
     <main className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold">My Orders</h1>
 
-      <OrdersFilters restaurants={restaurants || []} isOwner={true} />
+      <OrdersFilters restaurants={restaurants || []} isOwner={true} restaurantId={p.id} />
 
       {(!orders || orders.length === 0) && (
         <Card>
