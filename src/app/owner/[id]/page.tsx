@@ -1,6 +1,6 @@
 // app/owner/restaurants/[id]/page.tsx
 import { notFound } from "next/navigation";
-import { getRestaurant } from "@/actions/restaurants";
+import { getRestaurant, getRestaurantByOwner } from "@/actions/restaurants";
 import { listMenuItems } from "@/actions/menu";
 import AddMenuItemForm from "@/components/menuItem/AddMenuItemForm";
 import MenuTable from "@/components/menuItem/MenuTable";
@@ -15,7 +15,7 @@ export default async function RestaurantDetailPage({
   if (!Number.isFinite(id)) notFound();
 
   const [rest, items] = await Promise.all([
-    getRestaurant(id),
+    getRestaurantByOwner(id),
     listMenuItems(id),
   ]);
 

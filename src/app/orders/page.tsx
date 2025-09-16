@@ -14,6 +14,7 @@ import OrdersFilters from "@/components/orders/filter";
 import { Car } from "lucide-react";
 import { OrderStatus } from "@/lib/definitions";
 import { CustomerStatus } from "@/components/orders/CustomerStatus";
+import { ShoppingCart, User, LogOut, Icon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 

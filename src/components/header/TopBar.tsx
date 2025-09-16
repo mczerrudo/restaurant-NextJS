@@ -71,7 +71,7 @@ export default async function TopBar() {
           </IconTooltip>
           {user && (
             <div className="text-sm font-medium transition-colors hover:text-primary">
-              {" "}
+              
               {user?.email}
             </div>
           )}

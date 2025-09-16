@@ -43,3 +43,9 @@ export const signUpSchema = z
     path: ["confirmPassword"],
     message: "Passwords do not match",
   });
+
+export const createReviewSchema = z.object({
+  restaurantId: z.number().int().positive(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});

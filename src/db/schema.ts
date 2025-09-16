@@ -9,6 +9,8 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
 
+const nowMs = sql`(CAST(strftime('%s','now') AS INTEGER) * 1000)`;
+
 export const users = sqliteTable(
   "users",
   {
@@ -33,13 +35,35 @@ export const restaurants = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(Math.floor(Date.now() / 1000)),
+    createdAt: integer("created_at").notNull().default(nowMs),
+    //Ratings
+    ratingAvg: real("rating_avg").notNull().default(0),
+    ratingCount: integer("rating_count").notNull().default(0),
   },
   (t) => ({
     ownerIdx: index("restaurants_owner_idx").on(t.ownerId),
     uniqNamePerOwner: unique().on(t.ownerId, t.name),
+  })
+);
+
+export const reviews = sqliteTable(
+  "reviews",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    restaurantId: integer("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(), // 1 to 5
+    comment: text("comment"),
+    createdAt: integer("created_at").notNull().default(nowMs),
+    updatedAt: integer("updated_at").notNull().default(nowMs),
+  },
+  (t) => ({
+    uniqUserRestaurant: unique().on(t.userId, t.restaurantId),
+    restIdx: index("reviews_restaurant_idx").on(t.restaurantId),
   })
 );
 
@@ -57,9 +81,7 @@ export const menuItems = sqliteTable(
     available: integer("available", { mode: "boolean" })
       .notNull()
       .default(true),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(Math.floor(Date.now() / 1000)),
+    createdAt: integer("created_at").notNull().default(nowMs),
   },
   (t) => ({
     uniqPerRestaurant: unique().on(t.restaurantId, t.name),
@@ -82,7 +104,7 @@ export const orders = sqliteTable(
     })
       .notNull()
       .default("pending"),
-    createdAt: integer("created_at").notNull().default(Date.now()),
+    createdAt: integer("created_at").notNull().default(nowMs),
   },
   (t) => ({
     restIdx: index("orders_restaurant_idx").on(t.restaurantId),

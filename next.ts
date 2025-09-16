@@ -1389,3 +1389,293 @@ function EditableRow({ it, onCancel, onSave, pending }: { it: MenuItem; onCancel
 - After each mutation, the action already calls `revalidatePath()` so `router.refresh()` reflects latest data.
 
 > You can later swap the basic buttons with shadcn Buttons/Dialogs and Sonner toasts without changing the data flow.
+
+
+---
+
+# Reviews (1–5) — one per user per restaurant, only if user has a **completed** order there
+
+This adds a `reviews` table, wiring, and minimal UI so customers can rate restaurants once (1–5), only after at least one **completed** order.
+
+## 1) Schema
+```ts
+// src/db/schema.ts (append new table + optional denormalized stats on restaurants)
+import { sqliteTable, text, integer, real, unique, index } from "drizzle-orm/sqlite-core";
+
+// Add these columns to restaurants (optional but recommended for quick averages)
+export const restaurants = sqliteTable(
+  "restaurants",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    ownerId: integer("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: integer("created_at").notNull().default(Math.floor(Date.now()/1000)),
+    // NEW ↓
+    ratingAvg: real("rating_avg").notNull().default(0),
+    ratingCount: integer("rating_count").notNull().default(0),
+  },
+  (t) => ({
+    ownerIdx: index("restaurants_owner_idx").on(t.ownerId),
+    uniqNamePerOwner: unique().on(t.ownerId, t.name),
+  })
+);
+
+// NEW TABLE: reviews
+export const reviews = sqliteTable(
+  "reviews",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    restaurantId: integer("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(), // 1..5 (validated in app)
+    comment: text("comment"),
+    createdAt: integer("created_at").notNull().default(Math.floor(Date.now()/1000)),
+    updatedAt: integer("updated_at").notNull().default(Math.floor(Date.now()/1000)),
+  },
+  (t) => ({
+    uniqUserRestaurant: unique().on(t.userId, t.restaurantId),
+    restIdx: index("reviews_restaurant_idx").on(t.restaurantId),
+  })
+);
+```
+Run migrations:
+```bash
+pnpm drizzle-kit generate && pnpm drizzle-kit push
+```
+
+---
+
+## 2) Validators
+```ts
+// src/lib/validators.ts (append)
+import { z } from "zod";
+
+export const createReviewSchema = z.object({
+  restaurantId: z.number().int().positive(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});
+```
+
+---
+
+## 3) Actions: create/list/check review
+```ts
+// src/actions/reviews.ts
+"use server";
+import "server-only";
+import { db } from "@/db/client";
+import { reviews, restaurants, orders } from "@/db/schema";
+import { createReviewSchema } from "@/lib/validators";
+import { requireUser, getSessionUser } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import { and, eq, desc } from "drizzle-orm";
+
+export async function listRestaurantReviews(restaurantId: number) {
+  const rows = await db.select().from(reviews)
+    .where(eq(reviews.restaurantId, restaurantId))
+    .orderBy(desc(reviews.createdAt));
+  return rows;
+}
+
+export async function getMyReview(restaurantId: number) {
+  const user = await getSessionUser();
+  if (!user) return null;
+  const [row] = await db.select().from(reviews)
+    .where(and(eq(reviews.restaurantId, restaurantId), eq(reviews.userId, user.id)))
+    .limit(1);
+  return row || null;
+}
+
+export async function canUserReview(restaurantId: number) {
+  const user = await getSessionUser();
+  if (!user) return { allowed: false, reason: "Sign in to review." };
+  // must have at least one COMPLETED order at this restaurant
+  const [o] = await db.select({ id: orders.id }).from(orders)
+    .where(and(eq(orders.userId, user.id), eq(orders.restaurantId, restaurantId), eq(orders.status, "completed")))
+    .limit(1);
+  if (!o) return { allowed: false, reason: "You can review only after a completed order." };
+  const existing = await getMyReview(restaurantId);
+  if (existing) return { allowed: false, reason: "You already reviewed this restaurant." };
+  return { allowed: true };
+}
+
+export async function createReview(form: FormData | { restaurantId: number; rating: number; comment?: string }) {
+  const user = await requireUser();
+  const data = form instanceof FormData
+    ? {
+        restaurantId: Number(form.get("restaurantId")),
+        rating: Number(form.get("rating")),
+        comment: (form.get("comment") as string) || undefined,
+      }
+    : form;
+
+  const parsed = createReviewSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: parsed.error.flatten() };
+
+  // rule 1: must have a completed order
+  const [o] = await db.select({ id: orders.id }).from(orders)
+    .where(and(eq(orders.userId, user.id), eq(orders.restaurantId, parsed.data.restaurantId), eq(orders.status, "completed")))
+    .limit(1);
+  if (!o) return { ok: false, error: "You can only review after a completed order." };
+
+  // rule 2: only one review per user per restaurant
+  const [existing] = await db.select().from(reviews)
+    .where(and(eq(reviews.userId, user.id), eq(reviews.restaurantId, parsed.data.restaurantId)))
+    .limit(1);
+  if (existing) return { ok: false, error: "You have already reviewed this restaurant." };
+
+  // insert + update restaurant aggregates atomically
+  try {
+    await db.transaction(async (tx) => {
+      const now = Math.floor(Date.now() / 1000);
+      await tx.insert(reviews).values({
+        userId: user.id,
+        restaurantId: parsed.data.restaurantId,
+        rating: parsed.data.rating,
+        comment: parsed.data.comment,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const [agg] = await tx.select({ avg: restaurants.ratingAvg, cnt: restaurants.ratingCount })
+        .from(restaurants)
+        .where(eq(restaurants.id, parsed.data.restaurantId))
+        .limit(1);
+      const prevAvg = agg?.avg ?? 0;
+      const prevCnt = agg?.cnt ?? 0;
+      const newCnt = prevCnt + 1;
+      const newAvg = (prevAvg * prevCnt + parsed.data.rating) / newCnt;
+      await tx.update(restaurants)
+        .set({ ratingAvg: newAvg, ratingCount: newCnt })
+        .where(eq(restaurants.id, parsed.data.restaurantId));
+    });
+
+    revalidatePath(`/restaurants/${parsed.data.restaurantId}`);
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e.message };
+  }
+}
+```
+
+---
+
+## 4) UI — Add to Restaurant page
+
+### Server component section on `/restaurants/[id]`
+```tsx
+// app/restaurants/[id]/page.tsx (excerpt) — add this near the bottom
+import { listMenuItems } from "@/actions/menu";
+import { listRestaurantReviews, getMyReview, canUserReview } from "@/actions/reviews";
+import CreateReviewForm from "@/components/CreateReviewForm";
+
+export default async function RestaurantPage({ params }: { params: { id: string } }) {
+  const id = Number(params.id);
+  // ... fetch restaurant (public) + items
+  const [items, reviews, myReview, reviewGate] = await Promise.all([
+    listMenuItems(id),
+    listRestaurantReviews(id),
+    getMyReview(id),
+    canUserReview(id),
+  ]);
+
+  return (
+    <div className="space-y-8">
+      {/* your header + menu UI here */}
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Reviews</h2>
+        <div className="text-sm text-muted-foreground">
+          Average rating: {/* assume you've fetched restaurant.ratingAvg & ratingCount */}
+        </div>
+
+        {myReview ? (
+          <div className="rounded border p-3 text-sm">
+            <div className="font-medium">Your review</div>
+            <div>Rating: {myReview.rating} / 5</div>
+            {myReview.comment && <p className="mt-1">{myReview.comment}</p>}
+          </div>
+        ) : reviewGate.allowed ? (
+          <CreateReviewForm restaurantId={id} />
+        ) : (
+          <div className="rounded border p-3 text-sm">{reviewGate.reason}</div>
+        )}
+
+        <ul className="divide-y rounded border">
+          {reviews.length === 0 && (
+            <li className="p-3 text-sm text-muted-foreground">No reviews yet.</li>
+          )}
+          {reviews.map((r) => (
+            <li key={r.id} className="p-3 space-y-1">
+              <div className="text-sm">Rating: {r.rating} / 5</div>
+              {r.comment && <p className="text-sm text-muted-foreground">{r.comment}</p>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+```
+
+### Client form
+```tsx
+// src/components/CreateReviewForm.tsx
+"use client";
+import { useTransition, useState } from "react";
+import { createReview } from "@/actions/reviews";
+import { useRouter } from "next/navigation";
+
+export default function CreateReviewForm({ restaurantId }: { restaurantId: number }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    fd.set("restaurantId", String(restaurantId));
+    setError(null);
+    start(async () => {
+      const res = await createReview(fd);
+      if (res.ok) {
+        (e.currentTarget as HTMLFormElement).reset();
+        router.refresh();
+      } else setError(typeof res.error === "string" ? res.error : "Failed to submit review");
+    });
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3 rounded border p-3">
+      <div className="space-y-1">
+        <label className="text-sm">Rating</label>
+        <div className="flex gap-2">
+          {[1,2,3,4,5].map((n) => (
+            <label key={n} className="flex items-center gap-1 text-sm">
+              <input type="radio" name="rating" value={n} required /> {n}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <label className="text-sm">Comment (optional)</label>
+        <textarea name="comment" rows={3} className="w-full rounded border px-3 py-2" placeholder="Share a few words about your experience" />
+      </div>
+      {error && <div className="text-sm text-red-600">{error}</div>}
+      <button disabled={pending} className="rounded bg-black text-white px-4 py-2">
+        {pending ? "Submitting…" : "Submit review"}
+      </button>
+    </form>
+  );
+}
+```
+
+---
+
+## 5) Notes / Options
+- **Rule scope**: I used `status = "completed"` for the eligibility check. If you prefer allowing after **confirmed** too, change the predicate to `orders.status IN ("confirmed","preparing","completed")`.
+- **Editing reviews**: Spec says *once*. If you want edits, we’ll add an `updateReview` action that adjusts `ratingAvg` with the delta.
+- **Averages**: Using `restaurants.ratingAvg/ratingCount` keeps the page fast. You can also compute with a query if you don’t want denormalized columns.
+- **Owner view**: On `/owner/restaurants/[id]`, you can render the average and review count to the owner, but not allow them to write reviews.

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "725a1c7a-5b28-46d7-bdad-9034259b33b3",
+  "id": "798d6541-c842-46f3-b94a-dfbbee8e804f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "menu_items": {
@@ -63,7 +63,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1757916126
+          "default": "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
         }
       },
       "indexes": {
@@ -147,6 +147,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "item_subtotal": {
+          "name": "item_subtotal",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         }
       },
       "indexes": {
@@ -228,7 +236,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1757916126
+          "default": "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
         }
       },
       "indexes": {
@@ -323,7 +331,23 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1757916126
+          "default": "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
+        },
+        "rating_avg": {
+          "name": "rating_avg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "rating_count": {
+          "name": "rating_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         }
       },
       "indexes": {
@@ -350,6 +374,110 @@
           "tableTo": "users",
           "columnsFrom": [
             "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "reviews": {
+      "name": "reviews",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "restaurant_id": {
+          "name": "restaurant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(CAST(strftime('%s','now') AS INTEGER) * 1000)"
+        }
+      },
+      "indexes": {
+        "reviews_restaurant_idx": {
+          "name": "reviews_restaurant_idx",
+          "columns": [
+            "restaurant_id"
+          ],
+          "isUnique": false
+        },
+        "reviews_user_id_restaurant_id_unique": {
+          "name": "reviews_user_id_restaurant_id_unique",
+          "columns": [
+            "user_id",
+            "restaurant_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "reviews_user_id_users_id_fk": {
+          "name": "reviews_user_id_users_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "reviews_restaurant_id_restaurants_id_fk": {
+          "name": "reviews_restaurant_id_restaurants_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "restaurants",
+          "columnsFrom": [
+            "restaurant_id"
           ],
           "columnsTo": [
             "id"
