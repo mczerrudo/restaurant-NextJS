@@ -19,8 +19,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/owner") && !user?.is_restaurant_owner) {
+  if (pathname.startsWith("/owner") && !user?.isRestaurantOwner) {
     return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  if (pathname === "/login" || pathname === "/register") {
+    if (user) return NextResponse.redirect(new URL("/", req.url));
   }
 
   return NextResponse.next();

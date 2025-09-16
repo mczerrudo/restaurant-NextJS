@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart/cart-provider";
-import { createOrder } from "@/actions/order";
+import { createOrder } from "@/actions/orders";
 
 export default function CheckoutButton() {
   const router = useRouter();
@@ -15,13 +15,14 @@ export default function CheckoutButton() {
     if (!items.length || busy) return;
     setBusy(true);
     try {
+      console.log("Creating order with items:", items);
       const payload = {
-        restaurant: items[0].restaurant,
+        restaurant: items[0].restaurantId,
         items: items.map((i) => ({ menu_item: i.id, quantity: i.qty })),
       };
       const res = await createOrder(payload);
       clear();
-      router.push(`/orders/`);
+      console.log("Order created:", res);
     } finally {
       setBusy(false);
     }

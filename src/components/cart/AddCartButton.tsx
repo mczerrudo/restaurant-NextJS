@@ -5,6 +5,8 @@ import { MenuItemType } from "@/lib/definitions";
 export default function AddToCartButton({ item }: { item: MenuItemType }) {
   const { add } = useCart();
 
+
+
   return (
     <button
       onClick={() => add({ ...item, qty: 1 })}

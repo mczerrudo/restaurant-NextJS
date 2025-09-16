@@ -5,11 +5,11 @@
 
 export type MenuItemType = {
   id: number;
-  restaurant: number;
-  restaurant_name: string;
+  restaurantId: number;
   name: string;
   price: string; // as returned by DRF
   description: string;
   category: string;
-  available: boolean;
 };
+
+export type OrderStatus = "pending" | "confirmed" | "preparing" | "completed" | "cancelled";

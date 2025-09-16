@@ -1,63 +1,157 @@
-// modules/auth.ts
 "use server";
 import "server-only";
+import { db } from "@/db/index";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import {getUser} from "@/actions/user";
-import { jwtDecode } from "jwt-decode";
-import { get } from "http";
+import { authCookieOptions, signJwt, verifyJwt } from "@/lib/crypto";
+import { verifyPassword, hashPassword } from "@/lib/crypto";
+import { redirect } from "next/navigation";
+import { signUpSchema } from "@/lib/validators";
 
-const DRF = process.env.DRF_URL!;
+export async function signInAction(form: FormData): Promise<void> {
+  const email = String(form.get("email") || "");
+  const password = String(form.get("password") || "");
+  if (!email || !password) redirect("/login?error=missing");
 
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email.toLowerCase()))
+    .limit(1);
+  if (!u || !u.passwordHash) redirect("/login?error=invalid");
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const decoded: { user_id?: number } = jwtDecode(token);
-    return decoded.user_id ?? null;
-  } catch (e) {
-    console.error("Invalid token", e);
-    return null;
-  }
-}
+  const valid = await verifyPassword(password, u.passwordHash);
+  if (!valid) redirect("/login?error=invalid");
 
-
-
-export async function login(username: string, password: string) {
-
-
-  const res = await fetch(`${DRF}/api/token/`, {
-    method: "POST",
-    headers: { "Accept": "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-    cache: "no-store",
+  const token = await signJwt({
+    sub: String(u.id),
+    email: u.email,
+    is_restaurant_owner: !!u.isRestaurantOwner,
   });
-  if (!res.ok) {
-    const msg = (await res.json().catch(() => ({})))?.detail || "Invalid credentials";
-    return { ok: false, message: msg };
-  }
-  const data = await res.json(); // { access, refresh? }
-  const jar = await cookies();
-  jar.set("access", data.access, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 3600 });
-  if (data.refresh) {
-    jar.set("refresh", data.refresh, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
-  }
-    // Prefetch user data
-  const user = await getUser(getUserIdFromToken(data.access)!);
-    if (!user) {
-        jar.delete("access");
-        jar.delete("refresh");
-        return { ok: false, message: "Failed to fetch user data" };
-    }
-  jar.set("user", JSON.stringify(user), { httpOnly: false, secure: true, sameSite: "lax", path: "/", maxAge: 3600 });
 
+  const cookieStore = await cookies();
+  cookieStore.set("access", token, authCookieOptions());
+  cookieStore.set("user", JSON.stringify(u), {
+    httpOnly: false,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 3600,
+  });
+
+  redirect("/"); // success
+}
+
+export async function signOutAction() {
+  const cookieStore = await cookies();
+  cookieStore.delete("access");
   return { ok: true };
 }
 
-export async function logout() {
-  const jar = await cookies();
-  jar.delete("access");
-  jar.delete("refresh");
-  jar.delete("user");
-
-  return { ok: true };
+// (Optional) simple sign-up (dev only). Remove in prod or gate by admin.
+export async function devSignUp(
+  form:
+    | FormData
+    | {
+        email: string;
+        password: string;
+        fullName?: string;
+        isRestaurantOwner?: boolean;
+      }
+) {
+  const data =
+    form instanceof FormData
+      ? {
+          email: String(form.get("email")),
+          password: String(form.get("password")),
+          fullName: String(form.get("fullName") || ""),
+          isRestaurantOwner:
+            String(form.get("isRestaurantOwner") || "false") === "true",
+        }
+      : form;
+  if (!data.email || !data.password)
+    return { ok: false, error: "Email & password required" };
+  const hash = await hashPassword(data.password);
+  try {
+    await db.insert(users).values({
+      email: data.email.toLowerCase(),
+      fullName: data.fullName,
+      isRestaurantOwner: !!data.isRestaurantOwner,
+      passwordHash: hash,
+    });
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e.message };
+  }
 }
 
+export async function signUpAction(
+  form:
+    | FormData
+    | {
+        email: string;
+        password: string;
+        confirmPassword: string;
+        fullName?: string;
+        isRestaurantOwner?: boolean;
+      }
+) {
+  const data =
+    form instanceof FormData
+      ? {
+          email: String(form.get("email") || "")
+            .toLowerCase()
+            .trim(),
+          password: String(form.get("password") || ""),
+          confirmPassword: String(form.get("confirmPassword") || ""),
+          fullName: (form.get("fullName") as string) || undefined,
+          isRestaurantOwner:
+            String(form.get("isRestaurantOwner") || "false") === "true",
+        }
+      : {
+          ...form,
+          email: String(form.email || "")
+            .toLowerCase()
+            .trim(),
+          isRestaurantOwner: !!form.isRestaurantOwner,
+        };
+
+  const parsed = signUpSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: parsed.error.flatten() };
+
+  // check if email exists
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, parsed.data.email))
+    .limit(1);
+  if (existing) return { ok: false, error: "Email already in use" };
+
+  const hash = await hashPassword(parsed.data.password);
+  try {
+    const inserted = await db
+      .insert(users)
+      .values({
+        email: parsed.data.email,
+        fullName: parsed.data.fullName,
+        isRestaurantOwner: parsed.data.isRestaurantOwner
+          ? (1 as any)
+          : (0 as any),
+        passwordHash: hash,
+      })
+      .returning({ id: users.id });
+
+    const uid = inserted[0]?.id;
+    const token = await signJwt({
+      sub: String(uid),
+      email: parsed.data.email,
+      is_restaurant_owner: parsed.data.isRestaurantOwner,
+    });
+    const cookieStore = await cookies();
+    cookieStore.set("access", token, authCookieOptions());
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e.message };
+  }
+}

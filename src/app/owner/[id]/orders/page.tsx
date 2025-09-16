@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import OrdersFilters from "@/components/orders/filter";
 import { Car } from "lucide-react";
 import { OrderStatus } from "@/lib/definitions";
-import { CustomerStatus } from "@/components/orders/CustomerStatus";
+import { OwnerStatus } from "@/components/orders/OwnerStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +25,11 @@ function pesos(n: number) {
   }).format(n);
 }
 
-export default async function OrdersPage({
+export default async function OrdersPage({ 
+  params,
   searchParams,
 }: {
+  params: { id: string };
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const sp = await searchParams;
@@ -39,9 +41,11 @@ export default async function OrdersPage({
     return s === "all" || s == null ? undefined : (s as OrderStatus);
   }
 
+  const p = await params;
+  const restaurantId = p.id;
   const restaurants = await listRestaurants(); // dropdown data
   const orders = await listOrders({
-    restaurant: get("restaurant") ? Number(get("restaurant")) : undefined,
+    restaurant: restaurantId ? Number(restaurantId) : undefined,
     status: parseStatus(get("status")),
     ordering:
       get("ordering") === "created_at" || get("ordering") === "-created_at"
@@ -53,7 +57,7 @@ export default async function OrdersPage({
     <main className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold">My Orders</h1>
 
-      <OrdersFilters restaurants={restaurants || []} isOwner={false} />
+      <OrdersFilters restaurants={restaurants || []} isOwner={true} />
 
       {(!orders || orders.length === 0) && (
         <Card>
@@ -91,7 +95,7 @@ export default async function OrdersPage({
                     {restaurants.find((r) => r.id === o.restaurantId)?.name}
                   </CardDescription>
                 </div>
-                <CustomerStatus order={{ id: o.id, status: o.status }} />
+                <OwnerStatus order={{ id: o.id, status: o.status }} />
               </CardHeader>
 
               <CardContent className="space-y-2">

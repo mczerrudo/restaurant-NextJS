@@ -1,5 +1,5 @@
 import { drfFetch } from "@/lib/drf";
-import { listRestaurants } from "@/actions/restaurant";
+import { listRestaurants } from "@/actions/restaurants";
 import Link from "next/link";
 import {
   Card,
@@ -18,7 +18,8 @@ export default async function RestaurantsPage({
 }: {
   searchParams: { q?: string };
 }) {
-  const q = searchParams?.q || "";
+  const sp = await searchParams;
+  const q = sp?.q || "";
   const restaurants = await listRestaurants(q);
 
   return (
@@ -37,7 +38,7 @@ export default async function RestaurantsPage({
           <CardTitle>Restaurant List</CardTitle>
           <CardDescription>Find your favorite restaurant</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h overflow-y-scroll">
           <ul className="grid gap-4">
             {restaurants.map((r : any) => (
               <li key={r.id}>

@@ -1,18 +1,14 @@
-import { getRestaurant } from "@/actions/restaurant";
-import { listMenuItems } from "@/actions/menu-item";
+import { getRestaurant } from "@/actions/restaurants";
+import { listMenuItems } from "@/actions/menu";
 import MenuItem from "@/components/restaurant/menu-items";
-
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const r = await getRestaurant(Number(params.id));
-  return { title: `${r.name} • React Restaurant` };
-}
 
 export default async function RestaurantDetail({
   params,
 }: {
   params: { id: string };
 }) {
-  const r = await getRestaurant(Number(params.id));
+  const p = await params;
+  const r = await getRestaurant(Number(p.id));
   const items = await listMenuItems(r.id);
 
   return (
