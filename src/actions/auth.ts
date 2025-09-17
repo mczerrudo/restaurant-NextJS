@@ -9,34 +9,59 @@ import { verifyPassword, hashPassword } from "@/lib/crypto";
 import { redirect } from "next/navigation";
 import { signUpSchema } from "@/lib/validators";
 
-export async function signInAction(form: FormData): Promise<void> {
-  const email = String(form.get("email") || "");
-  const password = String(form.get("password") || "");
-  if (!email || !password) redirect("/login?error=missing");
+type SignInResult =
+  | { ok: true }
+  | { ok: false; code: "missing" | "invalid" | "server_error"; message: string };
 
-  const [u] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email.toLowerCase()))
-    .limit(1);
-  if (!u || !u.passwordHash) redirect("/login?error=invalid");
+export async function signInAction(form: FormData): Promise<SignInResult> {
+  const email = String(form.get("email") || "").toLowerCase().trim();
+  const password = String(form.get("password") || "");
+
+  if (!email || !password) {
+    return { ok: false, code: "missing", message: "Email and password are required." };
+  }
+
+  const [u] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!u || !u.passwordHash) {
+    return { ok: false, code: "invalid", message: "Invalid email or password." };
+  }
 
   const valid = await verifyPassword(password, u.passwordHash);
-  if (!valid) redirect("/login?error=invalid");
+  if (!valid) {
+    return { ok: false, code: "invalid", message: "Invalid email or password." };
+  }
 
-  const token = await signJwt({
-    sub: String(u.id),
-    email: u.email,
-    is_restaurant_owner: !!u.isRestaurantOwner,
-  });
+  // Sign the JWT (guard against missing secrets or other failures)
+  let token: string;
+  try {
+    token = await signJwt({
+      sub: String(u.id),
+      email: u.email,
+      is_restaurant_owner: !!u.isRestaurantOwner,
+    });
+  } catch {
+    return { ok: false, code: "server_error", message: "Unable to sign in. Please try again." };
+  }
 
+  // Set cookies — keep JWT httpOnly; keep only non-sensitive data in a readable cookie
   const cookieStore = await cookies();
-  cookieStore.set("access", token, authCookieOptions());
-  cookieStore.set("user", JSON.stringify(u), authCookieOptions());
+  cookieStore.set("access", token, authCookieOptions()); // typically httpOnly, secure, sameSite=lax
 
-  redirect("/"); // success
+  // If you read "user" on the client, make it non-httpOnly and minimal.
+  const publicUser = {
+    id: u.id,
+    email: u.email,
+    isRestaurantOwner: !!u.isRestaurantOwner,
+    name: u.fullName ?? null,
+  };
+  cookieStore.set(
+    "user",
+    JSON.stringify(publicUser),
+    { ...authCookieOptions(), httpOnly: false } // readable on client
+  );
+
+  return { ok: true };
 }
-
 export async function signOutAction() {
   const cookieStore = await cookies();
   cookieStore.delete("access");

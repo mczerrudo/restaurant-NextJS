@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { logout } from "@/actions/authDRF";
+import { signOutAction} from "@/actions/auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import IconTooltip from "@/components/header/IconToolTip";
@@ -12,7 +12,7 @@ export default function LogoutButton() {
 
   async function handleLogout() {
     try {
-      await logout(); // server action
+      await signOutAction(); // server action
       toast.success("Logged out successfully");
       router.push("/login");
     } catch (err) {

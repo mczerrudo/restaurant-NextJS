@@ -75,23 +75,24 @@ export async function deleteRestaurant(_: any, form: FormData | { id: number }) 
 
 export async function updateRestaurant(
  _: any,
-  form: FormData | { id: number; name: string; description?: string }
+  form: FormData | { id: number; name: string; description?: string; address:string }
 ) {
   try {
     const user = await requireUser();
 
-    const { id, name, description } = form instanceof FormData
+    const { id, name, description, address } = form instanceof FormData
       ? {
           id: Number(form.get("id")),
           name: String(form.get("name") || ""),
-          description: String(form.get("description") || "") || undefined,
+          description: String(form.get("description") || ""),
+          address: String(form.get("address") || "")|| undefined,
         }
-      : { id: form.id, name: form.name, description: form.description };
+      : { id: form.id, name: form.name, description: form.description ,address: form.address};
 
     // Only allow updating restaurants owned by the user
     const result = await db
       .update(restaurants)
-      .set({ name, description })
+      .set({ name, description,address })
       .where(and(eq(restaurants.id, id), eq(restaurants.ownerId, user.id)))
       .returning({ id: restaurants.id });
 
@@ -170,3 +171,40 @@ export async function listRandomRestaurants(limit = 12) {
     .orderBy(sql`RANDOM()`)
     .limit(limit);
 }
+
+
+export type HeroStats = {
+  totalRestaurants: number;
+  ratedRestaurants: number;
+  totalRatings: number;
+  averageRating: number | null; // weighted by ratingCount
+};
+
+export async function getHeroStats(): Promise<HeroStats> {
+  const [row] = await db
+    .select({
+      totalRestaurants: sql<number>`coalesce(count(*), 0)`,
+      ratedRestaurants: sql<number>`
+        coalesce(sum(case when ${restaurants.ratingCount} > 0 then 1 else 0 end), 0)
+      `,
+      totalRatings: sql<number>`coalesce(sum(${restaurants.ratingCount}), 0)`,
+      weightedRatingSum: sql<number>`
+        coalesce(sum(${restaurants.ratingAvg} * ${restaurants.ratingCount}), 0)
+      `,
+    })
+    .from(restaurants);
+
+  const averageRating =
+    Number(row.totalRatings) > 0
+      ? Number(row.weightedRatingSum) / Number(row.totalRatings)
+      : null;
+
+  return {
+    totalRestaurants: Number(row.totalRestaurants),
+    ratedRestaurants: Number(row.ratedRestaurants),
+    totalRatings: Number(row.totalRatings),
+    averageRating,
+  };
+}
+
+// optional: pretty print counts (1.2k+, 3.4m+ …)

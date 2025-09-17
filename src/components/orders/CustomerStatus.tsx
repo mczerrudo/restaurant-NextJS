@@ -5,7 +5,7 @@ import { updateOrderStatus } from "@/actions/orders";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/customUI/confirm-dialog";
-import { XCircle, Clock, CheckCircle, ChefHat, Truck, Loader2 } from "lucide-react";
+import { XCircle, Clock, CheckCircle, ChefHat, Loader2 } from "lucide-react";
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
   pending: <Clock className="h-3 w-3" />,
@@ -23,11 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800 border-red-200",
 };
 
-export function CustomerStatus({
-  order,
-}: {
-  order: { id: string; status: string };
-}) {
+export function CustomerStatus({ order }: { order: { id: string; status: string } }) {
   const [status, setStatus] = useState(order.status);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -41,48 +37,50 @@ export function CustomerStatus({
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border min-w-[140px]">
+    <div className="flex flex-col p-3 bg-gray-50 rounded-lg border min-w-[180px]">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-600">Status:</span>
-        <Badge 
-          className={`capitalize flex items-center gap-1 ${STATUS_COLORS[status]}`}
+        <span className="text-xs font-medium text-gray-600">Status</span>
+        <Badge
           variant="outline"
+          className={`capitalize flex items-center gap-1 px-2 py-0.5 h-5 ${STATUS_COLORS[status]}`}
         >
           {STATUS_ICONS[status]}
-          {status.replace(/_/g, ' ')}
+          <span className="leading-none">{status.replace(/_/g, " ")}</span>
         </Badge>
       </div>
-      
-      {status === "pending" && (
-        <ConfirmDialog
-          trigger={
-            <Button
-              variant="destructive"
-              size="sm"
-              className="h-7 text-xs flex items-center gap-1"
-              disabled={isCancelling}
-            >
-              {isCancelling ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <XCircle className="h-3 w-3" />
-              )}
-              Cancel Order
-            </Button>
-          }
-          title="Cancel Order"
-          description="Are you sure you want to cancel this order? This action cannot be undone."
-          confirmText="Yes, cancel order"
-          cancelText="No, keep order"
-          onConfirm={cancel}
-        />
-      )}
-      
-      {status !== "pending" && status !== "cancelled" && (
-        <div className="text-xs text-gray-500 text-center py-1">
-          Order cannot be cancelled
-        </div>
-      )}
+
+      {/* Footer (fixed height so cards don't jump) */}
+      <div className="mt-2 min-h-[28px] flex items-center justify-center">
+        {status === "pending" ? (
+          <ConfirmDialog
+            trigger={
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-7 text-xs flex items-center gap-1"
+                disabled={isCancelling}
+              >
+                {isCancelling ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <XCircle className="h-3 w-3" />
+                )}
+                Cancel order
+              </Button>
+            }
+            title="Cancel Order"
+            description="Are you sure you want to cancel this order? This action cannot be undone."
+            confirmText="Yes, cancel order"
+            cancelText="No, keep order"
+            onConfirm={cancel}
+          />
+        ) : status === "cancelled" ? (
+          <span className="text-xs text-gray-500">Order was cancelled</span>
+        ) : (
+          <span className="text-xs text-gray-500">Order cannot be cancelled</span>
+        )}
+      </div>
     </div>
   );
 }

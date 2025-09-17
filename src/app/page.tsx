@@ -5,10 +5,32 @@ import TopRestaurants from "@/components/restaurant/TopRestaurants";
 import RestaurantsCarousel from "@/components/home/RestaurantCarousel";
 import { listRandomRestaurants } from "@/actions/restaurants";
 import Hero from "@/components/home/Hero";
-import { Users, Clock, ShieldCheck } from "lucide-react";
+import { Users, Clock, ShieldCheck, Utensils, Star } from "lucide-react";
+import { getHeroStats } from "@/actions/restaurants";
 
 export default async function HomePage() {
   const items = await listRandomRestaurants(12);
+  const stats = await getHeroStats();
+
+  function formatCount(n: number) {
+    if (n >= 1_000_000)
+      return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}m+`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k+`;
+    return `${n}+`;
+  }
+
+  const heroStats = [
+    {
+      value: formatCount(stats.totalRestaurants), // e.g. "1.2k+"
+      label: "Restaurants",
+      icon: <Utensils className="h-4 w-4" />,
+    },
+    {
+      value: stats.averageRating ? stats.averageRating.toFixed(1) : "—",
+      label: "Average rating",
+      icon: <Star className="h-4 w-4" />,
+    },
+  ];
 
   return (
     <main>
@@ -24,6 +46,7 @@ export default async function HomePage() {
           secondaryHref="/orders"
           secondaryLabel="Track my orders"
           className="min-h-[340px] md:min-h-[400px] rounded-none border-0"
+          stats={heroStats}
         />
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

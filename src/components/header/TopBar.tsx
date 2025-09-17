@@ -62,9 +62,10 @@ export default async function TopBar() {
           </IconTooltip>
           {/* Logout Button */}
           <LogoutButton />
-          <IconTooltip label="Profile">
+          
+          <IconTooltip label="Login">
             <Button variant="ghost" size="icon" asChild>
-              <Link href="/profile">
+              <Link href="/login">
                 <User className="h-5 w-5" />
               </Link>
             </Button>

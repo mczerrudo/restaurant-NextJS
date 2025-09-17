@@ -20,6 +20,10 @@ export default function EditForm({ r }: { r: any }) {
         <Label htmlFor={`description-${r.id}`}>Description</Label>
         <Input id={`description-${r.id}`} name="description" defaultValue={r.description || ""} />
       </div>
+      <div className="space-y-1">
+        <Label htmlFor={`address-${r.id}`}>Address</Label>
+        <Input id={`address-${r.id}`} name="address" defaultValue={r.address || ""} />
+      </div>
       <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button>
       {state?.ok === false && state.error && (
         <p className="text-sm text-red-600">{state.error}</p>
