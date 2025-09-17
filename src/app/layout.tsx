@@ -5,7 +5,7 @@ import { CartProvider } from "@/components/cart/cart-provider";
 import TopBar from "@/components/header/TopBar";
 
 export const metadata: Metadata = {
-  title: "My Restaurant App",
+  title: "Restaurant",
   description: "Order delicious food from nearby restaurants",
 };
 

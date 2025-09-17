@@ -6,7 +6,7 @@ import { reviews, restaurants, orders } from "@/db/schema";
 import { createReviewSchema } from "@/lib/validators";
 import { requireUser, getSessionUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 
 export async function listRestaurantReviews(restaurantId: number) {
   const rows = await db.select().from(reviews)
@@ -93,4 +93,68 @@ export async function createReview(form: FormData | { restaurantId: number; rati
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
+}
+
+async function recomputeRestaurantRating(restaurantId: number) {
+  const [agg] = await db
+    .select({
+      count: sql<number>`coalesce(count(*), 0)`,
+      sum: sql<number>`coalesce(sum(${reviews.rating}), 0)`,
+    })
+    .from(reviews)
+    .where(eq(reviews.restaurantId, restaurantId));
+
+  const ratingCount = Number(agg.count);
+  const ratingAvg = ratingCount > 0 ? Number(agg.sum) / ratingCount : 0;
+
+  await db
+    .update(restaurants)
+    .set({ ratingAvg, ratingCount })
+    .where(eq(restaurants.id, restaurantId));
+}
+
+export async function updateMyReview(restaurantId: number, input: { rating: number; comment?: string | null }) {
+  const user = await requireUser();
+
+  // upsert-or-update only the current user's review for this restaurant
+  const [existing] = await db
+    .select({ id: reviews.id })
+    .from(reviews)
+    .where(and(eq(reviews.restaurantId, restaurantId), eq(reviews.userId, user.id)))
+    .limit(1);
+
+  if (!existing) {
+    // If you do NOT want to allow creating here, throw instead.
+    // return { ok: false, message: "No existing review to edit." };
+    await db.insert(reviews).values({
+      restaurantId,
+      userId: user.id,
+      rating: input.rating,
+      comment: input.comment ?? null,
+      createdAt: Math.floor(Date.now() / 1000),
+    });
+  } else {
+    await db
+      .update(reviews)
+      .set({
+        rating: input.rating,
+        comment: input.comment ?? null,
+        updatedAt: Math.floor(Date.now() / 1000),
+      })
+      .where(eq(reviews.id, existing.id));
+  }
+
+  await recomputeRestaurantRating(restaurantId);
+  return { ok: true };
+}
+
+export async function deleteMyReview(restaurantId: number) {
+  const user = await requireUser();
+
+  await db
+    .delete(reviews)
+    .where(and(eq(reviews.restaurantId, restaurantId), eq(reviews.userId, user.id)));
+
+  await recomputeRestaurantRating(restaurantId);
+  return { ok: true };
 }

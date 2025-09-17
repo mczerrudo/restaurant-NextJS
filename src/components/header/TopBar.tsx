@@ -24,7 +24,7 @@ export default async function TopBar() {
       <div className="container flex h-14 items-center justify-between md px-6">
         {/* Logo / Brand */}
         <Link href="/" className="font-bold text-lg">
-          🍽 MyRestaurant
+        Restaurant
         </Link>
 
         {/* Nav Links */}

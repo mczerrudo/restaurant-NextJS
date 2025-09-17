@@ -31,12 +31,16 @@ export default async function RestaurantDetail({
       {/* Restaurant Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{r?.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            {r?.name}
+          </h1>
           {r?.ratingAvg !== null && (
             <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-lg">
               <div className="flex items-center">
                 <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                <span className="ml-1 font-bold text-gray-900">{r.ratingAvg?.toFixed(1)}</span>
+                <span className="ml-1 font-bold text-gray-900">
+                  {r.ratingAvg?.toFixed(1)}
+                </span>
               </div>
               <span className="text-gray-600">({r.ratingCount} reviews)</span>
             </div>
@@ -60,29 +64,29 @@ export default async function RestaurantDetail({
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Reviews Sidebar - Sticky on desktop */}
-        <aside className="lg:col-span-1">
-          <div className="lg:sticky lg:top-6 space-y-6">
-            <ReviewsPanel
-              restaurantId={id}
-              average={r?.ratingAvg ?? null}
-              ratingCount={r?.ratingCount ?? null}
-              myReview={myReview}
-              reviews={reviews}
-              reviewGate={reviewGate}
-            />
-          </div>
+        <aside className="w-full lg:w-1/4 lg:sticky lg:top-20 lg:self-start">
+          <ReviewsPanel
+            restaurantId={id}
+            average={r?.ratingAvg ?? null}
+            ratingCount={r?.ratingCount ?? null}
+            myReview={myReview}
+            reviews={reviews}
+            reviewGate={reviewGate}
+          />
         </aside>
 
         {/* Menu Section */}
-        <section className="lg:col-span-3">
+        <section className="w-full lg:w-3/4">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Menu</h2>
-              <span className="text-sm text-gray-500">{items.length} items</span>
+              <span className="text-sm text-gray-500">
+                {items.length} items
+              </span>
             </div>
-            
+
             {items.length === 0 ? (
               <div className="text-center py-12">
                 <Utensils className="h-12 w-12 text-gray-300 mx-auto mb-4" />
