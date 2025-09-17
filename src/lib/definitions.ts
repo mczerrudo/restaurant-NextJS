@@ -10,6 +10,7 @@ export type MenuItemType = {
   price: string; // as returned by DRF
   description: string;
   category: string;
+  available: boolean
 };
 
 export type OrderStatus = "pending" | "confirmed" | "preparing" | "completed" | "cancelled";

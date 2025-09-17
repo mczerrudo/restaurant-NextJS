@@ -66,7 +66,7 @@ export default async function OrdersPage({
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filters Sidebar */}
-          <div className="w-full lg:w-1/4">
+          <div className="w-full lg:w-1/4 lg:sticky lg:top-20 lg:self-start">
             <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
               <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
                 <Filter className="h-5 w-5" />

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { OrderStatistics } from "@/components/orders/orderStatistics";
 import { OrdersList } from "@/components/orders/orderList";
+import { getRestaurant } from "@/actions/restaurants";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ function pesos(n: number) {
   }).format(n);
 }
 
-export default async function OrdersPage({ 
+export default async function OrdersPage({
   params,
   searchParams,
 }: {
@@ -54,7 +55,7 @@ export default async function OrdersPage({
 
   const p = await params;
   const restaurantId = p.id;
-  const restaurants = await listRestaurants(); // dropdown data
+  const restaurants = await getRestaurant(Number(restaurantId)); // dropdown data
   const orders = await listOrders({
     restaurant: restaurantId ? Number(restaurantId) : undefined,
     status: parseStatus(get("status")),
@@ -69,7 +70,9 @@ export default async function OrdersPage({
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">My Orders</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            {restaurants.name}
+          </h1>
           <p className="text-gray-600 mt-1">
             View and manage your order history
           </p>
@@ -77,13 +80,13 @@ export default async function OrdersPage({
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filters Sidebar */}
-          <div className="w-full lg:w-1/4">
+          <div className="w-full lg:w-1/4 lg:sticky lg:top-20 lg:self-start">
             <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
               <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
                 <Filter className="h-5 w-5" />
                 Filter Orders
               </h2>
-              <OrdersFilters restaurants={restaurants || []} isOwner={true} />
+              <OrdersFilters restaurants={[restaurants]} isOwner={true} />
             </div>
 
             <OrderStatistics orders={orders} />
@@ -91,7 +94,12 @@ export default async function OrdersPage({
 
           {/* Orders List */}
           <div className="w-full lg:w-3/4">
-            <OrdersList orders={orders} restaurants={restaurants} ordering={ordering} isOwner={true}/>
+            <OrdersList
+              orders={orders}
+              restaurants={[restaurants]}
+              ordering={ordering}
+              isOwner={true}
+            />
           </div>
         </div>
       </div>

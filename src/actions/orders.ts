@@ -49,6 +49,8 @@ export async function listOrders(params: {
     itemsByOrder.set(it.orderId, arr);
   }
 
+
+  
   // attach items[] to each row
   return rows.map((o) => ({
     ...o,
@@ -168,7 +170,7 @@ export async function updateOrderStatus(orderId: string, next: OrderStatus) {
   await db.update(orders).set({ status: next }).where(eq(orders.id, orderId));
   
   revalidatePath("/orders");
-  revalidatePath("/owner")
+  revalidatePath("/owner");
   return { ok: true };
 }
 
@@ -185,4 +187,26 @@ export async function getOrderWithRestaurant(orderId: string) {
     .limit(1);
 
   return row[0]; // contains { order, restaurant }
+}
+
+
+const ACTIVE_STATUSES: OrderStatus[] = ["pending", "confirmed", "preparing"];
+
+///Get the active orders in for a the CurrentOwner
+export async function getActiveOrdersForCurrentOwner() {
+  const user = await requireUser();
+
+  return db
+    .select({
+      order: orders,
+      restaurant: restaurants,
+    })
+    .from(orders)
+    .leftJoin(restaurants, eq(restaurants.id, orders.restaurantId))
+    .where(
+      and(
+        inArray(orders.status, ACTIVE_STATUSES),
+        eq(restaurants.ownerId, user.id)
+      )
+    );
 }

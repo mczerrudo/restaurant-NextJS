@@ -22,7 +22,7 @@ export default function CheckoutButton() {
       };
       const res = await createOrder(payload);
       clear();
-      console.log("Order created:", res);
+      router.push("/orders")
     } finally {
       setBusy(false);
     }

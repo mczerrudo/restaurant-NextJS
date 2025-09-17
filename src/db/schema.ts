@@ -74,7 +74,7 @@ export const menuItems = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     restaurantId: integer("restaurant_id")
       .notNull()
-      .references(() => restaurants.id, { onDelete: "restrict" }),
+      .references(() => restaurants.id, { onDelete: "cascade", onUpdate: "cascade" }),
     name: text("name").notNull(),
     price: real("price").notNull(),
     description: text("description"),

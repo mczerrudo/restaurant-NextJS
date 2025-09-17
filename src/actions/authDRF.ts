@@ -2,7 +2,7 @@
 "use server";
 import "server-only";
 import { cookies } from "next/headers";
-import {getUser} from "@/actions/user";
+import {getUser} from "@/actions/userDRF";
 import { jwtDecode } from "jwt-decode";
 import { get } from "http";
 import { drfFetch } from "@/lib/drf";

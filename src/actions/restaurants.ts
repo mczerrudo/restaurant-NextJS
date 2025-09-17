@@ -5,7 +5,7 @@ import { restaurants } from "@/db/schema";
 import { createRestaurantSchema } from "@/lib/validators";
 import { requireUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, gt, sql } from "drizzle-orm";
 
 export async function listRestaurants(search: string = "") {
   const rows = await db
@@ -61,10 +61,12 @@ export async function deleteRestaurant(_: any, form: FormData | { id: number }) 
   const user = await requireUser();
   const id = form instanceof FormData ? Number(form.get("id")) : form.id;
   try {
+    console.log(user,id)
     await db
       .delete(restaurants)
       .where(and(eq(restaurants.id, id), eq(restaurants.ownerId, user.id)));
     revalidatePath("/owner/restaurants");
+    console.log(user,id)
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e.message };
@@ -123,4 +125,48 @@ export async function getRestaurant(id: number) {
     .limit(1);
   return row || null;
 
+}
+
+export async function listTopRestaurants(opts?: { limit?: number; includeUnrated?: boolean }) {
+  const limit = opts?.limit ?? 5;
+  const includeUnrated = opts?.includeUnrated ?? false;
+
+  const where = includeUnrated ? undefined : gt(restaurants.ratingCount, 0);
+
+  const rows = await db
+    .select({
+      id: restaurants.id,
+      name: restaurants.name,
+      description: restaurants.description,
+      address: restaurants.address,
+      ratingAvg: restaurants.ratingAvg,
+      ratingCount: restaurants.ratingCount,
+      createdAt: restaurants.createdAt,
+    })
+    .from(restaurants)
+    .where(where)
+    .orderBy(
+      desc(restaurants.ratingAvg),
+      desc(restaurants.ratingCount),
+      desc(restaurants.createdAt)
+    )
+    .limit(limit);
+
+  return rows;
+}
+
+export async function listRandomRestaurants(limit = 12) {
+  return db
+    .select({
+      id: restaurants.id,
+      name: restaurants.name,
+      description: restaurants.description,
+      address: restaurants.address,
+      ratingAvg: restaurants.ratingAvg,
+      ratingCount: restaurants.ratingCount,
+    })
+    .from(restaurants)
+    // SQLite/libSQL random ordering:
+    .orderBy(sql`RANDOM()`)
+    .limit(limit);
 }

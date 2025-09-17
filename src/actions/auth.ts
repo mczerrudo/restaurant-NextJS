@@ -32,13 +32,7 @@ export async function signInAction(form: FormData): Promise<void> {
 
   const cookieStore = await cookies();
   cookieStore.set("access", token, authCookieOptions());
-  cookieStore.set("user", JSON.stringify(u), {
-    httpOnly: false,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 3600,
-  });
+  cookieStore.set("user", JSON.stringify(u), authCookieOptions());
 
   redirect("/"); // success
 }
@@ -46,45 +40,10 @@ export async function signInAction(form: FormData): Promise<void> {
 export async function signOutAction() {
   const cookieStore = await cookies();
   cookieStore.delete("access");
+  cookieStore.delete("user")
   return { ok: true };
 }
 
-// (Optional) simple sign-up (dev only). Remove in prod or gate by admin.
-export async function devSignUp(
-  form:
-    | FormData
-    | {
-        email: string;
-        password: string;
-        fullName?: string;
-        isRestaurantOwner?: boolean;
-      }
-) {
-  const data =
-    form instanceof FormData
-      ? {
-          email: String(form.get("email")),
-          password: String(form.get("password")),
-          fullName: String(form.get("fullName") || ""),
-          isRestaurantOwner:
-            String(form.get("isRestaurantOwner") || "false") === "true",
-        }
-      : form;
-  if (!data.email || !data.password)
-    return { ok: false, error: "Email & password required" };
-  const hash = await hashPassword(data.password);
-  try {
-    await db.insert(users).values({
-      email: data.email.toLowerCase(),
-      fullName: data.fullName,
-      isRestaurantOwner: !!data.isRestaurantOwner,
-      passwordHash: hash,
-    });
-    return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
-  }
-}
 
 export async function signUpAction(
   form:
@@ -148,8 +107,7 @@ export async function signUpAction(
       email: parsed.data.email,
       is_restaurant_owner: parsed.data.isRestaurantOwner,
     });
-    const cookieStore = await cookies();
-    cookieStore.set("access", token, authCookieOptions());
+    redirect("/login");
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e.message };
