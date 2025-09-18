@@ -52,7 +52,7 @@ export default function ReviewsPanel({
   };
 
   return (
-    <aside className="w-full lg:w-1/4 lg:sticky lg:top-20 lg:self-start">
+    <aside className="space-y-6 lg:sticky lg:top-6 self-start">
       {/* User Review Section */}
       {myReview ? (
         <Card className={editing ? "border-primary/20" : "border-0 shadow-sm"}>

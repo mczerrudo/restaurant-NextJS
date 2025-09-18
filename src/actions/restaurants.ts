@@ -118,7 +118,6 @@ export async function getRestaurantByOwner(id: number) {
 }
 
 export async function getRestaurant(id: number) {
-  const user = await requireUser();
   const [row] = await db
     .select()
     .from(restaurants)

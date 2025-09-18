@@ -8,7 +8,7 @@ export function middleware(req: NextRequest) {
 
   const { pathname, search } = req.nextUrl;
 
-  const protectedPaths = ["/owner", "/orders"];
+  const protectedPaths = ["/owner", "/orders", "/cart"];
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
   if (!isProtected) return NextResponse.next();
@@ -31,5 +31,11 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/owner/:path*", "/orders/:path*"],
+  matcher: [
+    "/owner/:path*",
+    "/orders/:path*",
+    "/cart/:path*",   // this is why /cart becomes protected
+    "/login",
+    "/register",
+  ],
 };

@@ -98,8 +98,7 @@ export const orders = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     restaurantId: integer("restaurant_id")
-      .notNull()
-      .references(() => restaurants.id, { onDelete: "restrict" }),
+      .references(() => restaurants.id, { onDelete: 'set null' }),
     status: text("status", {
       enum: ["pending", "confirmed", "preparing", "completed", "cancelled"],
     })

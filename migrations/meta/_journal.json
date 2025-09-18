@@ -22,6 +22,20 @@
       "when": 1758078707029,
       "tag": "0002_damp_husk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1758100553561,
+      "tag": "0003_adorable_sabretooth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1758101025111,
+      "tag": "0004_quick_luckman",
+      "breakpoints": true
     }
   ]
 }

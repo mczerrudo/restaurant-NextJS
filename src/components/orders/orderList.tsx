@@ -134,14 +134,10 @@ export function OrdersList({
                         <span className="text-gray-600">Subtotal</span>
                         <span>{pesos(total)}</span>
                       </div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Tax</span>
-                        <span>{pesos(total * 0.12)}</span>
-                      </div>
                       <Separator className="my-2" />
                       <div className="flex justify-between font-semibold">
                         <span>Total</span>
-                        <span>{pesos(total * 1.12)}</span>
+                        <span>{pesos(total)}</span>
                       </div>
                     </div>
                   </div>
@@ -158,7 +154,7 @@ export function OrdersList({
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-gray-500">Order Total</span>
                     <span className="font-semibold tabular-nums text-lg text-gray-800">
-                      {pesos(total * 1.12)}
+                      {pesos(total)}
                     </span>
                   </div>
                 </div>

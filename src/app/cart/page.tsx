@@ -176,10 +176,10 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-green-600">
+                {/* <div className="flex items-center gap-2 text-sm text-green-600">
                   <Check className="h-4 w-4" />
                   <span>Free delivery on orders over ₱300</span>
-                </div>
+                </div> */}
 
                 <CheckoutButton />
                 
